@@ -66,5 +66,5 @@ int main(void) {
     }
 
     //delete []arrStrings;
-    operator delete(arrStrings);
+    //operator delete(arrStrings);
 }

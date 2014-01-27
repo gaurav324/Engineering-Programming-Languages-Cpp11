@@ -35,4 +35,17 @@ There is no difference between operator syntax and function call syntax for any 
 
 `new` used with **function syntax**: splice is just **allocated**. Not initialized.
 
+---
 
+Update: Prateek (01/26)
+
+If creating an array of objects, you would need to have default constructor for that class, else compilation will fails.
+
+***When You Need a Default Constructor***
+
+Consider arrays of objects. The act of creating an array of objects accomplishes two tasks: It allocates contiguous memory space for all the objects and it calls the default constructor on each object. C++ fails to provide any syntax to tell the array creation code directly to call a different constructor. For example, if you do not define a default constructor for the SpreadsheetCell class, the following code does not compile:
+
+```
+SpreadsheetCell cells[3]; // FAILS compilation without default constructor 
+SpreadsheetCell* myCellp = new SpreadsheetCell[10]; // Also FAILS
+```

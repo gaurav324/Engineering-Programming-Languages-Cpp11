@@ -47,7 +47,7 @@ ostream& operator<<(ostream& os, String& str) {
 }
 
 int main(void) {
-    String* p = new String("Nanda Saab");
+    String* p = new String{"Nanda Saab"};
     cout << "Value of P: " << p->buffer << endl;
     delete p;
 
@@ -77,6 +77,13 @@ int main(void) {
      */
     String* secondCase = (String*) operator new (10 * sizeof(String));
     for (uint32_t i=0; i < 10; ++i) {
-          
+         new (secondCase + i) String {}; 
     }
+
+    for (uint32_t i=0; i < 10; ++i) {
+       cout << "secondCase[" << i << "]: " << arrStrings[i] << endl; 
+       // Deallocate here.
+       secondCase
+    }
+
 }

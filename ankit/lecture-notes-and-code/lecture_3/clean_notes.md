@@ -26,14 +26,15 @@ delete[] p
 
 ---
 
-### Operator syntax and Function Syntax
+### Operator syntax `X+Y` vs Function Syntax `operator+(X,Y)`
 
 There is no difference between operator syntax and function call syntax for any method **except** `new` and `delete`
 
 **`new`**
-`new` used with **operator syntax**: space is **allocated** and **initialized**.
 
-`new` used with **function syntax**: splice is just **allocated**. Not initialized.
+`new` used with **operator syntax** : space is **allocated** and **initialized**.
+
+`new` used with **function syntax** : splice is just **allocated**. Not initialized.
 
 ---
 

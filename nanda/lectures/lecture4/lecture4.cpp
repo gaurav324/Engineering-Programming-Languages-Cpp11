@@ -70,7 +70,7 @@ int main(void) {
     }
 
     // XXX Why is this failing?
-    //operator delete(arrStrings);
+    //operator delete[](arrStrings);
     
     /* 2. When memory allocation is also split into two parts,  
      *    allocation and initialization.
@@ -82,8 +82,8 @@ int main(void) {
 
     for (uint32_t i=0; i < 10; ++i) {
        cout << "secondCase[" << i << "]: " << arrStrings[i] << endl; 
-       // Deallocate here.
-       secondCase
+       // Destruct here.
+       secondCase[i].~String();
     }
-
+    operator delete[](secondCase);
 }

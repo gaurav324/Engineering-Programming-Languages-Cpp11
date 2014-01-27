@@ -28,7 +28,7 @@ public:
 
     // Destructor.
     ~String() {
-        delete buffer;
+        operator delete(buffer);
     }
 
     // Function to print the buffer.
@@ -51,6 +51,10 @@ int main(void) {
     cout << "Value of P: " << p->buffer << endl;
     delete p;
 
+
+    /* 1. Case where new is allocated normally and deallocation 
+     *    is broken down into two parts.
+     */
     String* arrStrings = new String[10];
     for (uint32_t i=0; i < 10; ++i) {
        cout << "Array of strings[" << i << "]: " << arrStrings[i] << endl; 
@@ -65,6 +69,14 @@ int main(void) {
         arrStrings[i].~String();
     }
 
-    //delete []arrStrings;
+    // XXX Why is this failing?
     //operator delete(arrStrings);
+    
+    /* 2. When memory allocation is also split into two parts,  
+     *    allocation and initialization.
+     */
+    String* secondCase = (String*) operator new (10 * sizeof(String));
+    for (uint32_t i=0; i < 10; ++i) {
+          
+    }
 }

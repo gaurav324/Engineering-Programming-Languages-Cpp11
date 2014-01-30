@@ -107,3 +107,4 @@ for i to cap.size * 2
 T a  = std::move(a); //calls move constructor
 T b;
 b = std::move(a); //move assignment
+```

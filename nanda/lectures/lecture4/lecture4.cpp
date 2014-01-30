@@ -3,6 +3,9 @@
 // Important topic was to sepaarate deconstruction and deallocation.
 // Similarly, construction and allocation go by side by side.
 //
+// Except new and operator, all other operator's function call syntax
+// and opertaor syntax are same.
+//
 #include <iostream>
 #include <cstdint>
 #include <cString>
@@ -77,13 +80,19 @@ int main(void) {
      */
     String* secondCase = (String*) operator new (10 * sizeof(String));
     for (uint32_t i=0; i < 10; ++i) {
-         new (secondCase + i) String {}; 
+        // Only difference here is that you put the pointer in between
+        // new operator and normal allocaton construct.
+        new (secondCase + i) String {}; 
     }
 
     for (uint32_t i=0; i < 10; ++i) {
        cout << "secondCase[" << i << "]: " << arrStrings[i] << endl; 
        // Destruct here.
-       secondCase[i].~String();
+       //secondCase[i].~String();
     }
-    operator delete[](secondCase);
+    // Both delete and delete[] seem to be working here.
+    // Ideal approach to me should be using delete. Because
+    // operator used to allocate memory was 'new' not 'new[]'.
+    //operator delete(secondCase);
+    delete secondCase;
 }

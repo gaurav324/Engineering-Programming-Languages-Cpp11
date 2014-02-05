@@ -192,7 +192,7 @@ t [11]------  [HELLO WORLD]
 ```
 
 		
-* Java everything is passed by reference. pointer.
+* Java everything is passed by value.
 * C++ assumes a copy.
 
 #### why copy?

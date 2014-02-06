@@ -179,6 +179,25 @@ TEST(PhaseA3, FooUnderFoo){
 //  cout<<"Foo::copies = "<<Foo::copies<<endl;
 }
 
+TEST(PhaseA3, FooUnderFooInverse){
+  Foo::reset();
+  {
+          using V = Vector<Vector<Vector<Foo>>>;
+          using VV = Vector<Vector<Foo>>;
+          using VVV = Vector<Foo>;
+          V x(1);
+          x.push_back(VV());
+          x[0].push_back(VVV());
+          x[0][0].push_back(Foo());
+          x[0].push_front(x[0][0]);
+          x.push_front(x[0]);
+  }
+
+  EXPECT_EQ(1, Foo::constructions);
+  EXPECT_EQ(11, Foo::destructions);
+  EXPECT_EQ(10, Foo::copies);
+}
+
 TEST(PhaseA3, FooZeroCap){
   Foo::reset();
   Vector<Foo> x;

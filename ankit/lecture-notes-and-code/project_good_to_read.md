@@ -1,4 +1,4 @@
-#Phase 1A
+###Phase 1A
 - std::move takes actual object as parameter and not a pointer.
 
 - operator delete(ptr) just deallocates the spaces. thats it. Use that instead of operator delete[]
@@ -22,7 +22,7 @@
 
 ---
 
-#smart_pointer
+###smart_pointer
 
 - operator= returns Klass& type and returns *this.
 

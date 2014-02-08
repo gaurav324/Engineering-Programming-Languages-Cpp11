@@ -26,7 +26,17 @@
 
 - operator= returns Klass& type and returns *this.
 
-- operator-> returns actual object hence T*
+- operator-> means pointer. Hence return type will be T* type.
 
-- operator* returns a pointer hence T&
+- operator* means *ptr means actual object should be returned. Hence, T&
 
+---
+
+###String with move
+- `char *buffer {nullptr}; //nullptr is good to have if running default constructor and printing the string. This will return empty string instead of an infinite one.`
+- An object of a class can access private members of another object of the same class.
+- `size = strlen(buffer); //sizeof(buffer)/sizeof(char); sizeof just gives the memory occupied of that element itself. sizeof(buffer) gives 4, sizeof(*buffer) gives 1. strlen is the only way to get the length.`
+- '=' can be used for primary types.
+- `std::ostream& operator<<(std::ostream& out, const T& t) { t.print(out); return out;}` something like this should be done outside T class to `cout` T object.
+- `const char* s = "hello"; // OK`
+- `char* s = "hello"; // NOT OK - conversion from std::string to char* has been deprecated. `

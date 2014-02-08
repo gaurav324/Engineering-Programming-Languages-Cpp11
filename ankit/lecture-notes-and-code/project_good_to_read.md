@@ -33,7 +33,10 @@
 ---
 
 ###String with move
-- `char *buffer {nullptr}; //nullptr is good to have if running default constructor and printing the string. This will return empty string instead of an infinite one.`
+- nullptr is good to have if running default constructor and printing the string. This will return empty string instead of an infinite one.
+```
+char *buffer {nullptr}; 
+```
 - An object of a class can access private members of another object of the same class.
 - `size = strlen(buffer); //sizeof(buffer)/sizeof(char); sizeof just gives the memory occupied of that element itself. sizeof(buffer) gives 4, sizeof(*buffer) gives 1. strlen is the only way to get the length.`
 - '=' can be used for primary types.

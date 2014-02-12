@@ -231,9 +231,9 @@ TEST(PhaseA3, FooEqMoveAssign) {
         for(int32_t i = 0; i< 40; i++) y.pop_back();
         z = y;
         x = std::move(z);
+        EXPECT_EQ(0, x.size());
+        EXPECT_EQ(0, y.size());
   }
-  EXPECT_EQ(0, x.size());
-  EXPECT_EQ(0, y.size());
   EXPECT_EQ(40, Foo::constructions);
   EXPECT_EQ(120, Foo::destructions);
   EXPECT_EQ(80, Foo::copies);

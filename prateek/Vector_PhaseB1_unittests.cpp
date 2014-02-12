@@ -217,19 +217,21 @@ TEST(PhaseA3, FooZeroCap){
 
 TEST(PhaseA3, FooEqMoveAssign) {
   Foo::reset();
-  Vector<Foo> x(40);
-  Vector<Foo> y;
-  Vector<Foo> z{x};
-  y = std::move(z);
-  for(int32_t i = 0; i< 40; i++) x.pop_back();
-  EXPECT_EQ(40, y.size());
-  EXPECT_EQ(0, x.size());
-  z = y;
-  x= std::move(z);
-  EXPECT_EQ(40, x.size());
-  for(int32_t i = 0; i< 40; i++) y.pop_back();
-  z = y;
-  x = std::move(z);
+  {
+        Vector<Foo> x(40);
+        Vector<Foo> y;
+        Vector<Foo> z{x};
+        y = std::move(z);
+        for(int32_t i = 0; i< 40; i++) x.pop_back();
+        EXPECT_EQ(40, y.size());
+        EXPECT_EQ(0, x.size());
+        z = y;
+        x= std::move(z);
+        EXPECT_EQ(40, x.size());
+        for(int32_t i = 0; i< 40; i++) y.pop_back();
+        z = y;
+        x = std::move(z);
+  }
   EXPECT_EQ(0, x.size());
   EXPECT_EQ(0, y.size());
   EXPECT_EQ(40, Foo::constructions);

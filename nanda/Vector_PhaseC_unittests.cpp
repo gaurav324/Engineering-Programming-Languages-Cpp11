@@ -89,13 +89,13 @@ TEST(PhaseC, ItrExceptModerate){
 	Vector<int>  x(3), y(3);
 	auto xi = begin(x);
 	
-	x = y;
 	try{
+	    x = y;
 		*xi = 5;
-    FAIL();
+        FAIL();
 	}
 	catch(epl::invalid_iterator ex){
-    EXPECT_EQ(ex.level, epl::invalid_iterator::MODERATE);
+        EXPECT_EQ(ex.level, epl::invalid_iterator::MODERATE);
 	}
 }
 
@@ -143,6 +143,7 @@ TEST(PhaseC, InitializerListNanda) {
         x1.push_front(15);
         x1.pop_front();
         cout << *itr;
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::SEVERE);
     }
@@ -162,6 +163,8 @@ TEST(PhaseC, EmplaceBackNanda) {
     // Test - 2
     const Vector<Foo> y(x);
     auto const_itr = y.begin();
+
+    //const_itr->val = 100;
     
     auto non_const_itr = x.begin();
     // This should not even compile.
@@ -178,6 +181,7 @@ TEST(PhaseC, ExceptionsSEVERENanda) {
         Vector<int> y;
         y = std::move(x);
         *i1 = 10;
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::SEVERE);
     }
@@ -189,6 +193,7 @@ TEST(PhaseC, ExceptionsSEVERENanda) {
         
         v = std::move(Vector<Foo>{1});
         *it1 = 10;
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::SEVERE);
     } 
@@ -203,7 +208,7 @@ TEST(PhaseC, ExceptionsSEVERENanda) {
         // This should not raise SEVERE expectation, but throw
         // a pop-front corresponding WARNING.
         EXPECT_EQ(it, x.end() - 4);
-    
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::WARNING);
     } 
@@ -218,6 +223,7 @@ TEST(PhaseC, ExceptionsMODERATENanda) {
         // Any assignment operation should result in moderate exception.
         // Even though there is no reallocation.
         it1 += 1;
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::MODERATE);
     } 
@@ -229,7 +235,7 @@ TEST(PhaseC, ExceptionsMODERATENanda) {
         // Would result in reallocation.
         v.push_back(5);
         it1 += 1;
-        
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::MODERATE);
     }
@@ -242,6 +248,7 @@ TEST(PhaseC, ExceptionsMILDNanda) {
         
         v.pop_back();
         it1 += 1;
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::MILD);
     } 
@@ -254,7 +261,7 @@ TEST(PhaseC, ExceptionsMILDNanda) {
         v.pop_back();
         v.push_back(5);
         it1 += 1;
-        
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::MILD);
     }
@@ -267,6 +274,7 @@ TEST(PhaseC, ExceptionsWARNINGNanda) {
         
         v.push_front(4);
         it1 += 1;
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::WARNING);
     } 
@@ -280,10 +288,79 @@ TEST(PhaseC, ExceptionsWARNINGNanda) {
         // Because this is de-reference, this would be SEVERE.
         *it1 = 10;
         
+        FAIL();
     } catch (epl::invalid_iterator ii){
         EXPECT_EQ(ii.level, epl::invalid_iterator::SEVERE);
     }
 }
 
+TEST(PhaseC, FlipIteratorFromOneVectorToAnother) {
+    Vector<Foo> v1{1, 2, 3, 4, 5};
+    Vector<Foo> v2{1, 12, 13, 14, 15};
+    
+    auto i1 = v1.begin();
+    i1 = v2.begin();
+
+    v1.pop_back();
+    *i1 = 11;
+    ++i1;
+
+    EXPECT_EQ(i1->val, 12);
+
+    i1 = v1.end();
+    i1--;
+    EXPECT_EQ(i1->val, 4);
+}
+
+TEST(PhaseC, VectorCopiedNoEffect) {
+    Vector<Foo> v1 = {1, 2, 3, 4};
+    Vector<Foo> v2 = {11, 12};
+
+    auto it1 = v1.begin();
+    v2 = v1;
+
+    // Should be allowed.
+    *it1 = 100;
+    auto it2 = v2.begin();
+
+    EXPECT_EQ(it1->val, 100);
+    EXPECT_EQ(it2->val, 1);
+
+    it1 += 2;
+    it2 += 1;
+
+    EXPECT_EQ(it1->val, 3);
+    EXPECT_EQ(it2->val, 2);
+}
+
+TEST(PhaseC, MultipleIteratorsSameVector) {
+    Vector<int> v1{1, 2, 3, 4};
+
+    auto it1 = v1.begin();
+    Vector<int>::const_iterator c_it1 = v1.begin();
+
+    ++it1;
+    EXPECT_EQ(*it1, 2);
+    EXPECT_EQ(*c_it1, 1);
+
+    it1 -= 2;
+    v1.pop_back();
+    v1.pop_back();
+    v1.pop_back();
+    v1.push_front(-1);
+    v1.pop_back();
+
+    try {
+        cout << *c_it1;
+    } catch (epl::invalid_iterator ii){
+        EXPECT_EQ(ii.level, epl::invalid_iterator::SEVERE);
+    }
+
+    try {
+        EXPECT_EQ(*it1, -1);
+    } catch (epl::invalid_iterator ii){
+        EXPECT_EQ(ii.level, epl::invalid_iterator::WARNING);
+    }
+}
 
 #endif

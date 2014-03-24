@@ -1,0 +1,26 @@
+02/25 
+
+When you check an iterator, it could be out of bounds..an out of bounds iterator is still a valid iterator. If you dereference an iterator that is out of bounds (such as end), then std::out_of_range() should be thrown. 
+
+                    <- MILD
+SEVERE <-  MODERATE                     
+					<- WARNING
+					
+template <typename T>
+bool operator!=(T x, T y) {
+	return !(x == y);
+}
+
+template <typename T> 
+bool op<(T x, T y) {
+	return 0 > (x - y);
+}
+
+p = 1 + p;  and 
+p = p + 1;  are not the same :- 1 + p should evaluate to type of '1' and p + 1 should evaluate to type of 'p'.
+
+p = x.begin()
+x = y;   // invalidate
+if (p == x.end()) {
+    // use of p is exception, probably moderate
+}

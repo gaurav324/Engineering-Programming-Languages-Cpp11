@@ -1,0 +1,88 @@
+02/20 - Iterators revisited
+---------------------------
+
+p = x.begin();
+                <-- x.pop_front() throws an exception.
+p = p - 2;      
+p = p + 2;
+*p = 42;
+
+We have a vector, we get an iterator..if we popped off the first element, p becomes invalid. As soon as it is used in the next line, it should throw an exception. Other view was when it was dereferenced, but that's not what the spec says. p = p - 2 returns an out of bound iterator, but a perfectly valid iterator. 
+
+p = x.begin();
+p = p - 2;     <-- out of bounds, but no exception; have not used an invalid iterator
+*p = 42;       <-- exception (std::out_of_range)!
+
+X = Y <-- p would be invalid, exception on the first usage
+DO NOT COPY the version number from Y to X! Therefore while copying Y to X, invalidate all iterators. 
+use of iterator, you don't invalidate anything..this is where you check if its invalid..
+The purpose of three levels of errors is to distinguish between different erroneous use cases.
+
+for random access iterators, q - p = int64_t, p + (int64_t)k = const_iterator, ++p, --p, const T& *p, == and assignment. Chase would write !=, disdainfully write post-increment. 
+relops does not define p < q as  (p - q) < 0, but this operator is not required for the projects. 
+
+Make sure const_iterator p = x.begin(); compiles and reverse should not compile iterator p = x.begin();
+
+Variadic template - emplace_back
+--------------------------------
+
+Not construct the original temporary in the first place. So when you do placement new, you just pass the arguments directly to the constructor. 
+But we dont know what kind of constructor type T has? Sometimes it might be that the user wants to use a specific constructor. 
+
+#include <cstdint>
+#include <iostream>
+
+// Member template class
+template <typename T>
+class Foo {
+	T data;
+public:
+	Foo (const T&);
+	Foo(T, double);
+	
+	// Member template function
+	template <typename AltType>
+	Foo<T>& operator=(const AltType& rhs);
+};
+
+// A member function in a template class is itself a template function
+template <typename U>
+Foo<U>::Foo(const U& val) {
+	cout << "constructor";
+}
+
+Foo<U>::Foo(T t, double d) {
+	cout << "T and double constructor";
+}
+
+// hideous definition of template function of a template class
+template <typename T>
+template <typename T2>
+Foo<T>& Foo<t>::operator=(const T2& rhs) {
+	T var = (T)rhs;
+	data = var;
+	return *this;
+}
+
+int main(void) {
+	Foo <int> x(42);
+	x.operator=<double>(3.14159);   // nobody does it this way, but there are some places where you need to specify the type. 
+									// However the cool thing about template functions is that they deduce the type. 
+	x = 3.14159;					
+	Foo<int>* p = make_thing<Foo<int>>(42);
+}
+
+Once upon a time it was a good programming practice to declare everything before defining everything. No more now, obscuring the code is acceptable..the IDE can find the code for you. Syntax of a variadic template is based loosely on C var_args.
+
+// One required argument (type T) and zero or more additional optional arguments. Just pass in T, and let the compiler deduce all of the remaining arguments. Make_thing is being instantiated here with Args... as a list of one type (int). Invoking make_thing with 2 arguments (42, 3.14159), I'm expecting compiler to deduce the type of Args, now its a list of 2 types. It will run the constructor for int and double. 
+
+template <typename T, typename... Args>
+T make_thing(Args... args) {
+	return new T(args...);  // Args... is a type list, args is an object list
+}
+
+Just take the existing push_back and change it to emplace_back and call the placement new with the args...
+Real power of variadic templates comes out from being able to pick out each parameter from the args. 
+std::forward is designed to take a parameter and pass it to a function - if it came to you as a ref pass as ref, const_ref as const_ref..pass everything in exactly same way. If your input values are rvalue references to non-trivial classes then you need std::forward..
+
+Next project (2), code up a very simple operator+...introduce really really smart proxies for vector addition. 

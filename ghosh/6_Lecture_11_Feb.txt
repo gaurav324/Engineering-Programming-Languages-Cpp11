@@ -1,0 +1,131 @@
+Design problem - lazy copying (Copy-on-write) Vector with reference counting
+============================================================================
+
+class Vector contains a struct Core which is the actual reference counted object. The Vector class becomes a wrapper for this Core. Method force_unique() is called in mutator methods to make a copy incase of multiple references. 
+
+force_unique() : if refcount > 1, reduces refcount and creates a new core and deep copies it.
+
+const_cast: add or remove constness
+static_cast: TBD inheritance
+dynamic_cast: TBD inheritance
+reinterpret_cast: to do anything, i know what i'm doing. 
+
+const_cast<const Vector<T>&>(x)[0] instead of x[0] to prevent deep copying when using x[0]. 
+But you cannot expect your users to do this everytime to prevent a decoupling. 
+
+Overload resolution is not location dependant..it is always type dependant. 
+
+The answer is to create a Proxy class which will encapsulate the int. This class will know when the int is on the lhs or the rhs. 
+
+struct Proxy {
+	Vector<T>* me;
+	uint64_t k;
+	
+	operator T(void) const {
+		return const_cast<const Vector<T>*>(me)->operator[](k);
+	}
+	
+	Proxy& operator=(const T& x) {
+		me->at(k) = x;
+		return *this;
+	}
+	// There is a problem due to this Proxy now..it does not have a +=, ++, -=, /= operators which normally used to work
+	// For completeness, all these operators should be now defined.
+};
+
+I expect the client to call the below method. The problem was when the client was calling the non-const version, which was forcing a decoupling. 
+If the Proxy is used on the left hand side for assignment, the 'Proxy& operator=(const T& x)' method is called, which takes care of calling the appropriate method for decoupling. operator T(void) is called when the compiler sees ostream& operator<<(Proxy& prox) being used, but it does not have a method with the parameter as a Proxy object. Then it sees that there is a type conversion operator for Proxy and it tries and type converts the Proxy object to T.
+
+Proxy operator[](uint64_t k) {
+	Proxy prox;
+	prox.me = this;
+	prox.k = k;
+	return Proxy;
+}
+
+const T& operator[](uint64_t k) const { return at(k); }
+
+C++ does not allow constructors and destructors, and type conversion operators are not allowed to have a return type. 
+Default [] operator is the l-value operator. WE WILL DO A LOT OF CLEVER PROXIES IN PROJECT 2. 
+
+Problem: void doIt(const int& x) {} cannot be called as an operator 'operator const T&(void) const' --> Proxy fails in this regard!
+Probably the only reason why the std::vector did not implement the copy-on-write method.
+
+--------------------------------------------------------------
+
+ITERATORS
+=========
+
+     2 
+    / \ 
+   1   5
+      / \
+     4	 6
+    / \
+   3  4.5
+   
+Who should understand how to navigate a binary search tree? The implementor, not the user. 
+In the case of the BST, all we need to do is get the pointer to the first one.
+
+Can use auto, but need to know the naming convention of the iterators.
+
+Java style of iterators         
+-----------------------
+auto p = mytree.begin();                   
+while (!p.hasNext()) {                        
+	T x = p.next();      // Java couples reading the operation and moving to the next step in the same operation
+}
+
+
+C++ style of iterators
+----------------------
+auto p = mytree.begin();
+while (p != mytree.end()) {
+	T x = *p;            // If Java used copy-style semantics instead of pointers, as C++ does, it would be really difficult to 
+	++p;				 // read the value without advancing it
+}
+
+Early drafts of the STL started out with first and last, where last was the one after the last element. In case of a binary tree, the end would be a null pointer. 
+
+Innovation#1 of STL: Data structures are given to a function by not handing the data structure, but by handing the iterator. In a tree it is in-order, for a vector it is in push_back order. Also, iterators are objects that very nearly resemble the objects (as T* proxies). 
+
+Pointer operations in C: Implement as many of these operators as makes sense for the iterator.
+
+forward_iterator:
+1. Dereference (*p) => T
+2. Address comparision (p == q) => bool
+3. Increment (++p; nobody in their right mind would ever use p++ -- WHY??)  => iterator
+
+bi-directional iterator:
+4. Decrement(--p) => iterator
+
+random-access iterator:
+5. Add integer (p + k) => iterator
+6. Subtract 2 pointers (q - p)]. => int
+
+Relops.h was a header file that provides definitions for operations. 
+
+Conventions:
+* iterator type is: 
+	- Data_structure::iterator
+	- Data_structure::const_iterator
+* begin() method
+	- returning iterator
+	- const returning const_iterator
+* end() method
+	- returning iterator
+	- const returning const_iterator
+* embedded types inside the iterator
+	- decltype: really cool!
+	- value_type: typeof(*p) = T 					// Not as necessary as it once was
+	- iterator::iterator_category					// Should be one of forward/bi/random_access -> has to be a type
+		+ std::forward_iterator_tag - types provided by the C++ STL library - empty types, which can be overloaded with functions (?)
+	
+
+Sometimes the clients will have a constant data structure, and sometimes a mutatable data structure..clients should not have the ability to change the data structure through the iterators. 
+
+If using auto with begin() or end(), then later usage dictates the constness of the iterator. 
+
+Challenge for Thursday -> Bubble Sorting algo that either sorts a Linked List or Vector. 
+
+

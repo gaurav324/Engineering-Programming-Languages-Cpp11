@@ -1,0 +1,91 @@
+Lecture - 2 (Thursday) 01/16/2014
+=================================
+
+- In C++, class and struct are exactly the same. 
+- ctsdint: includes definitions for int32_t and int64_t
+- static data member is not a data member. These have no effect on object size.
+- extern does not allocate any storage, but will be used later..has been defined elsewhere, will be found out when linking.
+- before C++11 data members could not be initialized in definition. Now they can be initialized, even static members.
+- adding a function does not increase the size of an object; member functions do not end up in objects.
+- a static member function is equivalent to a normal C function.
+- when member functions are invoked, Visual Studio passes the 'this' pointer in register ECX to a member function (non-static). Every other parameter is on the stack as usual. 
+
+- the fully qualified name of a member function is the class name prepended to a function name, such as foo::bar(). These functions have access to the private implied parameter 'this'. 
+- 'this' is a pointer. this: foo* const this.
+- C scope: locals -> parameters -> global scope
+- C++/Java scope: locals -> parameters -> check for this -> global scope
+- a global variable var can be accessed as ::var
+
+class Foo {
+private:
+	int x;
+
+public:	
+	void bar() {
+		x = 42;     ----> Expands to: [ this->Foo::x = 42; ]
+	}
+}
+
+- A member function of Foo can touch private member variables of any Foo object used inside the function.
+- Since member functions expect a hidden parameter 'this', this does not introduce any overhead over C. Java does this differently.
+- In C#: If Foo is a class, 'Foo f' is a reference, with no storage allocated. If Foo is a struct, 'Foo f' is an object with storage allocated.
+- In C++: If Foo is a struct or class, 'Foo f' always has storage allocated. 
+- In Java, 'Foo f' is always a reference, storage has to be allocated by new Foo();
+- CHECK: If number of items in initialization list < number of members in struct, what happens?
+- C++11: we can invoke constructor with initialization list.
+
+class Foo {
+private: 
+	int x, y;						
+	
+public:
+	Foo(int x, int y) {		<-----Foo f= {10, 20};
+		....  					earlier by default initializes x = 10, y = 20
+		....					now, just calls constructor with 2 parameters
+	}						<-----Foo f(10, 20); or Foo f{10, 20}; [Preferred by Chase]
+	Foo(void) {};           <-----Foo *f = new Foo();
+};
+
+- Constructor is a member function, not permitted a return type. Has an implicit parameter 'this'. 
+- CHECK: If a constructor throws an exception, is there a memory leak?
+
+Foo (int x) : Foo (x, 42) {}  [CHECK if Foo{x, 42} works]  	<---- constructor delegation
+Foo (int x, int y) {...}   									<---- constructor overloading
+
+- Destructor:  '~Foo (void) {}' 
+RAII: Resource Acquisition Is Initialization. In C++, you manage the lifetime of any object using constructors and destructors. 
+- C++ exceptions understand destructors. If an exception occurs, all objects going out of scope are destructed before exception is propagated. 
+- CHECK: What if exception is encountered in destructor?
+- Destructor is invoked when objects go out of scope. Pointers are not freed directly, have to call 'delete', which triggers the destructor.
+- Objects are destructed in the opposite order of construction, do not write code that depends on the order of construction.
+- Destructor is needed when there is an external resource accessed by the object. 
+
+class str {
+private:
+	char* data;
+	uint32_t len;
+	
+public:
+	str (const char* s) {
+		len = strlen(s);
+		data = new char[len + 1];
+		strcpy(data, s);
+	}
+	
+	~str() {
+		delete[] data;
+	}
+};
+
+int main() {
+	str a{"hello"};
+	fun(a);				<------- fun called, and returns
+}						<------- a goes out of scope, destructor called -> double delete of data.
+
+void fun(String b) {   	<------- Shallow copy! b is a copy of a on the stack, not a reference
+
+}						<------- b goes out of scope, destructor called
+
+Solution:
+1. void fun(String& b)  <------- calls fun with a reference of a, b is a pointer to a on the stack
+2. write a copy constructor for String, which does a deep copy everytime fun(String b) is called

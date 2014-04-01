@@ -1,0 +1,129 @@
+04/01/2014 - Lecture 17
+=======================
+
+Inheritance 
+-----------
+  -> Code reuse 
+  -> Subtyping, polymorphism, object-oriented-programming.
+			
+ISA relation - Derived isa Base.			
+			
+class Foo { }
+// Code reuse + additional mechanic
+class Bar : public Foo {
+	void doIt(void) { ... }     
+}
+
+Private inheritance is the default, but very rarely used. Chase doesn't very much care about it.
+Public features of the base class are private to the derived class. You do not inherit Foo's interface, but you simply get the data.
+Private inheritance is not very useful. 
+
+Public inheritance: NO constructors are inherited (copy constructor is kinda sorta almost inherited). Other constructors are not inherited unless you explicitly inherit them (using Foo(); or something like that). If you dont have a copy constructor in your derived class, compiler  will generate a copy constructor which will copy the base class as well, using the base class copy constructor. So might as well explicitly inherit it.
+
+Every once in a while you'll find yourself in a situation where your base class does everything you want, the only thing you want is some more overloads. You've added some new types and you want your base to work with your brand new type. 
+
+class Bar {
+	void doIt(int) { ... }
+}
+
+class Foo : public Bar {
+    void doIt(myType) { ... }   ---> overrides Base::doIt based on name not on signature.
+	void doIt(int) { Base::doIt(int); }  ---> function comes back
+}
+
+Function overriding in C++ is done using names, not by signature. If you want the function back, you defined it back.
+
+How does inheritance work?
+--------------------------
+
+class Base {
+	int X;
+	void doIt(void) { X = 42; }
+}
+
+class Derived : public Base {
+	int Y;
+	void doIt(void) { Y = 10; doIt(); }
+}
+
+   -------------------------
+   |      X    |     Y     |
+   -------------------------
+   ^
+   |
+'this' pointer
+
+Derived class is the same as the base class for the first 4 bytes (X), so we can use the same this pointer to access derived or base class object.
+For Derived d, Base class function can be called by d.Base::doIt();
+
+Then nice thing about using this implementation mechanic is that C++ has a separate compilation of Base class and derived class. You can inherit from a class which has no source code! Imagine the base class is in a library for which you have the machine code only, and not the source code. Compiler just needs to pass the derived* this pointer for all member function calls. 
+
+Under what circumstances do I need to have the source code for the base class? The compiler probably needs to know the layout of the base class, even if it is private it might need to know about the alignment etc. If the base class is a template? I don't need to have the machine code for the method, but I do need to have information about the layout of the class. If things change, will need to recompile the entire code which uses the Base. If both classes have a member with the same name, the nearest match is the member of the derived class. 
+
+Chase said something about the below example where pointer casting doesn't work (?)..
+Derived array[10];
+array[k].doIt();
+Base* p = array;
+
+   -------------------------
+   |   X   |   Y   |   Z   |
+   -------------------------
+   ^       ^
+   |       |____________________  Base2* this;
+derived *this = Base1 *this;
+   
+class Base {
+    int X;
+	void doIt(void) { X = 42; }
+}
+
+class Base2 {
+    int Y;
+	void doIt2(void) { ... }
+}
+
+class Derived : public Base1, public Base2 {
+    int Z;
+}
+
+Casting here is difficult, compiler needs to realize the order of the base classes and calculate the offset at which the next base class appears. The only time it is useful to specify which base class the object is derived from is when the class to a function is ambiguos as to which base class to call. For one of the base class, compiler simply takes the address and copies it. But for other classes, the compiler calculates the offset and converts the pointers. There is no function to do that, compiler does it automatically. If you are downcasting from Base2* to Derived* then the compiler will subtract the value of the offset. If any symbol resolves to 2 or more base classes it is ambiguous and a compiler error. Java works the same way, because it has only 1 base class. static_cast, dynamic_cast calculates the offset. reinterpret_cast does not calculate the offset. 
+
+Argument passing: If the function takes an object of the base class on the stack (Base b), then a truncated object is pushed on the stack. If its a reference (Base& b), then it just passes a pointer. In case of an rvalue reference? Dunno. (CHECK)
+
+When a class is inherited, everything within the class is inherited. Types are also inherited, such as value_type or any other type aliases. You might also (Chase not very sure) inherit member templates. 
+
+Derived d;
+Derived::T x;   <- Scope resolution, just look to the left 
+d.doIt();       <-    "             "
+
+T::doIt() {
+  R::x();       <- Scope resolution, but R must be a base class
+}
+
+Protected inheritance
+---------------------
+
+Rules for Java and C++ are exactly same. In practice if you make something protected in the base class, you can access them in your derived class but your clients cannot. 
+
+T::doIt() {
+   R::x = 42;      <--- If x is protected in R, then T can access it. But the client cannot
+}
+
+Object::clone is defined as a protected method in Java - but you can never invoke it as it is protected!
+
+List::append(Object x) {
+	Object y = x.clone();    <-- This is ILLEGAL!
+}
+
+RTTI (Run time type identification) has to be present in the base class. Base class needs to have not only its data components but also RTTI data. 
+A virtual method adds an implicit data component to the Base class - this is the RTTI data pointer. When the compiler generates machine code for the derived class, it knows that the RTTI data component is already contained in the base component of the derived class. Also, when a virtual function is added to a base class and a derived class overrides it, the RTTI is used from the base (?).
+
+class Base {
+	virtual void doIt(void) { ... }
+}
+
+class Derived : public Base {
+	void doIt(void) { ... }
+}
+
+RTTI -> static, only one instance per class. Contains the virtual function table. Implementation of VFN table next class. 

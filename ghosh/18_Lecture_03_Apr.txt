@@ -1,0 +1,91 @@
+04/03/2014 - Lecture 18
+-----------------------
+
+class Base {
+  int x;
+  void doIt(void) { cout << "Base"; }
+  virtual ~Base(void) {}
+};
+
+void main() {
+  Base b;    // Size = 12 bytes (16 due to alignment to 8 byte boundary) = sizeof (int) + sizeof (void* vptr)
+  b.doIt();
+}
+
+In Java virtual is by default, not so in C++. As long as there are no virtual functions there are no vptr* in the classes. 
+C++ was so performance focused in 1980s, they could never think of adding a vptr by default to all objects even without virtual functions. 
+
+b.doIt() -> regular method invocation (compiler can inline it) 
+1. doIt() is not a virtual function 
+2. b is not a reference or a pointer, so dynamic method selection is not required. 
+Neither of the requirements for dynamic method selection are satisfied. 
+
+class Base {
+  int x;
+  virtual void doIt(void) { cout << "Base"; }
+  virtual ~Base(void) {} 
+}
+
+Read: Fred Brooks' (manager in charge of System 360) experience. 
+
+VTable: Chase has no idea what is the ordering system for the functions, lets just say that it is in the order they are declared. 
+ ---------
+|  doIt   |
+ ---------
+| ~Base   |
+ ---------
+
+member of every object Base::vft_ptr;    <--- The pointer to the table that is stored in every object of type Base (link time resolved).
+static member of the class Base::vft;    <--- The actual table array (it's a linker label)
+
+You cannot access this pointer using the language, but some debuggers do display this field.
+No matter how many objects you have, you will need the same table for every object. But you need a table for each class. There will be one row per function.
+
+main() {
+  Base*b = ...;
+  b->doIt();
+}
+
+There are 2 necessary requirements for the method selection to be dynamic (as mentioned above). 
+Compiler translates b->doIt() to b->*(b->vft_ptr[0])();
+
+Compiler can easily generate machine code to calculate the offset of the function from the vtable start address and do an indirect subroutine call. If there are no derived classes does the compiler still have to lookup the dynamic method lookup? Yes. That's because there could be a derived class later and since we have separate compilation of files in C++, there could be an inheritance hierarchy introduced by other files which might require a vtable lookup. 
+
+p = doIt; and p = &doIt; are the same. Just like p = x and p = &x are the same for static arrays.
+
+using ptr_fun = voi d(*)(void);
+ptr_fun p = doIt;
+
+void (*p)(void) = &doIt;
+
+p = &Base::doIt;
+b.(*p)();
+
+In C++ address of a global function and address of a member function are irreconcilably different things, so they can never be confused with each other. Accessing the address of a private member function is equivalent to accessing the function - wherever you have access you will be able to access and vice versa. 
+
+this -> -----------
+       |  Base-1   |
+	    -----------
+	   |  Base-2   |
+	    -----------
+	   |  Derived  |
+	    -----------
+
+A pointer to a member function, notionally in C++ has to be a pair -> the amount of offset to the class layout (offset of the appropriate class from the start of this) and the pointer to the machine code of the correct function. But what if the offset is calculated first and then the function pointer is applied to a derived class object? Does the compiler store the identity of the class in the function pointer and then calculates the offset when applying the function on an object? Chase doesn't know. 
+
+If doIt1() is inherited from Base1 and doIt2() from Base2 then the compiler creates a trampoline Derived::doIt1() and Derived::doIt2() which call Base1::doIt1() and Base2::doIt2() respectively. So, when p = &Derived::doIt1() then it points to the base1::doIt1() function via the derived class trampoline. The trampoline is called a thunk. 
+
+Negative offset:
+ - derived virtual function is called
+ - might need to access data from base class (that is above)
+ 
+Multiple Inheritance
+--------------------
+ 
+this--> -----------------
+       |  Base1::vft_ptr |
+	    -----------------
+	   |  Base2::vft_ptr |
+	    -----------------
+	   |  Drvd::vft_ptr  |
+	    -----------------

@@ -1,0 +1,33 @@
+Lecture 19 - 8th April 2014
+---------------------------
+
+Base *p = new Derived{};
+Derived *d = p;
+^
+|__ Does this statically type check? No. 
+
+Derived *d = static_cast<Dervied *>(p);
+The C cast can be used in contexts in which static cast is not permitted. Chase not a 100% sure though.
+The type inside the template parameter and the type of 'p' should be related - either the same or a base class.
+Static cast is for going down the hierarchy. Dont really need a cast to go up. 
+
+The dynamic cast requires something - so that it can do runtime type identification. 
+It requires the presence of a pointer to a virtual function table. 
+
+What happens when you do a static cast and the cast is wrong? Static cast simply makes sure that the above requirements are satisfied. 
+In the event of single inheritance it just copies the address. In case of mulitple inheritance it calculates offset and copies the address. In case the programmer is not sure, he should not be doing static cast, rather should do dynamic cast. 
+
+static & dynamic case have the same basic requirement - should be in a general inheritance hierarchy.
+dynamic cast returns either nullptr or the correct address. If the object p really is a derived object, d receives the correct address.
+If on the other hand the object is not a derived object, dynamic cast returns a nullptr. The equivalent in Java is throwing a class cast exception.
+
+Base* p = new Base;
+Derived* d = dynamic_cast<Derived*>(p);  // Here d=nullptr.
+
+The compiler has in its internal symbol table knowledge of all the types and it knows the inheritance hierarchy. If it is legal it computes the offset and returns the address. Doesn't make sense to make a dynamic cast up the inheritance hierarchy - no need to do a cast actually. If you are doing a dynamic cast with a reference it will throw an exception in case of errors. 
+
+Check could be as simple as: p->vft_ptr == &Derived::vft[0], but compilers check is not as simple. 
+
+Only difference with Java is that every object has a runtime type id - only way you have a rtti in C++ is if you have the virtual function table, and you have that if there is a virtual function in Base. If there is no virtual function table in Base the compiler throws a compile time error. 
+
+Virtual Destructors: All destructors should be virtual. There is no value to having a destructor being non-virtual. Virtual destructors are only useful for objects on the heap. Otherwise compiler knows the type of the object. Compiler has to invoke the right destructor based on the actual type of the pointer. If the pointer is a base class pointer but object is a derived class object, then the compiler calls the dbase class destructor. If you are writing virtual functions, make your destructor virtual. Memory leak avoidance - primay reason. 

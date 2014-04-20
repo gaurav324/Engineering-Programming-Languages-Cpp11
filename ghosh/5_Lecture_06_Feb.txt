@@ -1,0 +1,129 @@
+vector<T> getData(input) {
+	vector<T> result;
+	...
+	result.push_back(value);
+	...
+	return result;
+}
+
+
+main() {
+	vector<T> myVector;
+	myVector = getData(...);
+}
+
+There were no rvalue references prior to C++11 and no move semantics.
+The problem of doing these excess copies due to the move semantics of C++11 has been removed.
+Earlier Chase used to have all his students to do shallow copies with reference counting, to get aroudn this problem of making heavy copies. 
+Challenge, sneak in the reference count into the element buffer before the first element. Have to make sure of alignment and other stuff in C++. Achieving this is difficult to do in the case of SmartPtr but easier to do in case of Vector. 
+
+std::make_shared() -> Constructs an object of type T and wraps it in a std::shared_ptr using args as the parameter list for the constructor of T. This function typically allocates memory for the T object and for the shared_ptr's control block with a single memory allocation (it is a non-binding requirement in the Standard). In contrast, the declaration std::shared_ptr<T> p(new T(Args...)) performs at least two memory allocations, which may incur unnecessary overhead.
+Moreover, f(shared_ptr<int>(new int(42)), g()) can lead to memory leak if g throws an exception. This problem doesn't exist if make_shared is used.
+
+If doing shallow copies all the time, it would be great in the above getData() context but not great in case of pass by value semantics where someone expects to have a local copy to work with in a function. What if one wants a fast copy but also wants to retain pass by value semantics? The trick lies in an old operating system paging trick where the data is changed in a lazy fashion.
+
+So what we would do in a copy-on-write implementation, is make a list of the mutators. {push_back, pop_back, []} And each one of those methods would be implemented with a header (prolog which checks the reference count) that performs a deep copy in case there are multiple references and then does the operation. Also, when you do the deep copy you set the reference count to 1. The reference count of the original object gets reduced. 
+ 
+This technique works really well but for a C++ hiccup. 
+Copy-on-write and move semantics combination is silly. COW gets you performance and move too, if you implement move properly then it gets you all of the performance automatically. COW was not asked from us in the project as move was asked. 
+
+Designer knowledge: Rule of thumb - is the method declared with a const modifier on it. 
+
+class Foo {
+	int *p;
+	int l;
+public:
+	int size(void) const { // Size does not change the object in any way - so const declarator is set.
+		return l;          // const means this method is not permitted to change the components
+	}                      // compiler will enforce this const-ness upto this limit only
+}
+
+int& Foo::operator[](int k) const {   // [] can be used on the lhs to change the value of a reference
+	return p[k];                      // however it can still be declared as const as it does not change
+}                    				  // p or l. 
+^^ This should not be done as it tends to confuse people. 
+If you have a const object, you can only call const methods. 
+
+You are allowed to overload member functions on the presence or absence of the qualifier const. 
+If it is a const method, the implicit parameter is 'const Foo* this' but in the non-const method case the implicit parameter is 'Foo* this'.
+
+int& Foo::operator[](int k) {
+
+}
+
+int Foo::operator[](int k) const {   // can be returned as const int& instead..if i'm writing a vector 
+                                     // would return const T& as we wouldn't know how big the object is
+}
+
+doIt1(const Vector<T>& param) {
+	cout << param[k];       // reading param, so it is okay
+}
+
+If doIt does not modify the param, then the designer would already have marked the param as const reference anyway. COW is not very helpful as either most of it would be provided by move semantics or const pass by reference const & parameters. 
+
+doIt2( Vector<T> param) {
+	cout << param[k];    // when the compiler looks at this line, it makes the wrong choice and selects 
+						 // the non-const version by default
+
+	param[k] = 42;       
+}
+
+doIt3(Vector<T> param) {   // cannot set this as const Vector<T>& as there is a branch which changes it
+	if (unlikely) {
+		param[k] = 42;
+	}
+	else {
+		cout << param[k];  // compiler checks the type of param and sees that param is writable - so it 
+	}					   // goes and selects the writable form of the [] operator - which due to our
+}						   // copy on write semantics does deep copy - and what for? for a read op.
+
+You can use an ordinary writable object and send it as a const object to a function, as you are reducing the scope. 
+
+One design technique that comes up in the copy on write is how to decouple the behaviour of doIt3().
+At this moment, COW is not considered a good technique. Since C++11. you are much better off implementing move and copy implementations. 
+
+Unless there is inlining, a compiler does not do any constness inference. 
+
+C++ convention: objects are always passed as constant references unless there is some reason you can't. 
+
+RVALUE REFERENCES (T&&)
+-----------------------
+
+Unnecessary copies were a design challenge. There was a need for the lamguage to give the programmer the right hook to fix this design challenge. The solution was the T&& type, which according to Chase is really ugly. 
+
+- what is its need? 
+- when does it show up?
+- what is the use of returning a T&&?
+
+We need to make this type, we need to make the compiler aware what to do with this type and make the designer aware that this type is available. 
+
+X = doIt();      // X cannot be a const, also it is an lvalue reference
+myVector.push_back(X);       <-- calls push_back(const T&);
+myVector.push_back(doIt());  <-- calls push_back(T&&)
+
+rvalue references are created for things that do not have names.
+
+Foo doIt() {     // no difference if returning Foo or Foo&&
+	return object;
+}
+
+push_back(T&& x) {
+    ...
+	new (pointer) T(x);    // calls a copy constructor - even though x is defined as an rvalue reference
+						   // any use of x is defined as an lvalue reference. Weird and obscure rule.
+						   // T&& in the param is used for overload resolution purposes
+    new (pointer) T((T&&)x);           // typecast -> works and calls move constructor
+	new (pointer) T(std::move(x));     // std::move is actually a typecast, more complicated because 
+	                                   // it deals with the case where the object might not be a ref
+}
+
+
+main() {
+	std::string x = "hello";
+	std::string y(std::move(x));
+	cout << x;          
+}
+
+You have no business using the variable after you have called std::move on it. Two things are guaranteed to work after calling std::move. They are destructor and reassignment operator.
+
+To maintain the relationship that every element that was constructed has to be destructed, even elements that have been moved should have their destructor called. 

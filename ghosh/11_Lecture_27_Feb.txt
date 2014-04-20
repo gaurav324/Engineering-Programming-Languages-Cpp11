@@ -1,0 +1,111 @@
+02/26 Template Metaprogramming
+------------------------------
+
+VS 2013 does not support constexpr. const = does change, static = single time assignment, constexpr = compile time constant. 
+1.5 is implicitly double. Floating point is so useless, that C/C++ does not believe in it's capacity and is therefore double precision and not single precision (float).
+
+template <typename T>
+struct SRankl
+
+template <> struct SRank<int> { static const uint32_t value = 1; }
+...
+...
+If you give me a complex<T>, and you ask me what the rank is i'm going to as the SRank metafunction what is the rank of T. 
+template <typename T> struct SRank<std::complex<T>> { static const uint32_t value = SRank<T>::value; };
+
+template <uint32_t rank>
+struct SType;
+
+template <> struct SType<1> { using type = int; };
+...
+...
+
+template <typename T> struct CRank { static const bool value = false; };     <-- T = complex<float>
+template <typename T> struct CRank<std::complex<T>> { static const bool value = true; }   <-- T = float
+
+template <typename T, bool complexity>
+struct CType;
+
+template <typename T> struct CType<T, true> {
+    using type = std::complex<T>;
+}
+
+template <typename T> struct CType<T, false> {
+    using type = T;
+}
+
+template <typename T1, typename T2>
+struct choose {
+	static const uint32_t t1_rank = SRank<T1>::value;
+	static const uint32_t t2_rank = SRank<T2>::value;
+	static const uint32_t max_rank = t1_rank > t2_rank ? t1_rank : t2_rank;
+	using stype = typename SType<max_rank>::type;
+	
+	static const bool t1_comp = CRank<T1>::value;
+	static const bool t2_comp = CRank<T2>::value;
+	static const bool complexity = t1_comp || t2_comp;
+	using type = typename CType<stype, complexity>::type;
+}
+
+template <typename T1, typename T2>
+typename choose <T1, T2>::type doIt(T1 x, T2 y) {
+	using RetType = typename choose<T1, T2>::type;
+	cout << "the deduced type is " << typeid<RetType>::name() << endl;
+}
+
+CHECK: typeid!
+typeid allows you to compile time reflection on objects. No idea about runtime type inference.
+
+template <typename T>
+vector<T> operator+(const vector<T>& x, const vector<T>& y) {
+	vector<T> result;
+	for (aito p = x.begin(), q = y.begin(); p != x.end() && q != y.end(); ++p, ++q) {
+		result.push_back(*p + *q);
+	}
+	return result;
+}
+
+I can specify overloads for operator+ for all the interesting types I care about, and not for the ones i dont. 
+
+If you run the enable_if metafunction and give it a type, it either returns the type based on the condition being true or it returns a non-existent type.
+
+template <typename T>
+epl::enable_if<epl::is_arithmetic<T>,
+	vector<T>>
+	operator+(const vector<T>& x, const vector<T>& y) {
+		vector<T> result;
+		for (aito p = x.begin(), q = y.begin(); p != x.end() && q != y.end(); ++p, ++q) {
+			result.push_back(*p + *q);
+		}
+		return result;
+	}
+	
+enable_if maybe a way to do that, what we are doing is introducing a return type that isnt even defined and causing a compile time error.
+
+Expression Templates:
+---------------------
+
+you just wrote a very permissive function, that prevents anyone else from writing one..so the second approach is especially bad. Adding that static assert will break everyone's code as it is a global level operator+ that everyone's code will end up calling. 
+
+valarray inherits all the interfaces of the class, except the constructos (VS, but not in gcc).
+
+X = X+Y+Z;
+Need to build a method that equals hand written code, but uses templates. Aim is that there should not be any vector temporaries.
+
+Proxy, holds a reference to what to add and it has a square bracket operator and it will look like a vector. 
+Fun part of the project is doing so writing as few operators as possible.
+
+template <typename T>
+class valarray : public epl::vector<T> {
+	Proxy<T> operator+(valarray<T> x, valarray<T> y) {
+		
+	}
+	
+	Proxy<T> operator+(valarray<T> x, )
+}
+
+Proxy, proxy; proxy, valarray; ...
+
+Type conversion operator proxy to valarray
+
+

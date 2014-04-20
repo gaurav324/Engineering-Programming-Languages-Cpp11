@@ -1,0 +1,51 @@
+Date: 03/18/2014
+
+Valarray<int> x(10); -> is different from Valarray<int> x{10}, the one on the left initializes a Valarray of 10 elements, the one on the right initializes a Valarray with an initializer list containing just 10.
+ 
+Valarray<int> y {x + x} - should be implemented, if you are doing the two argument valarray technique, you should get it for free
+If you run an element of the Valarray through f, return F::result_type, f((*this)[k]) -> result_type
+
+When you write apply, you can assume the existence of a nested type result_type for the Function object type (F::result_type must be defined).
+int goes to double, float goes to double, double stays double, complex of float has to be complex of double.
+ 
+(x + x).begin should work, but (x + x).push_back or (x + x).pop_back should not work. But maybe (x + x) has gone out of scope after the function begin returns. 
+
+Base class for Valarray is epl::vector but for now we can use std::vector - AI on TAs
+
+create a vector result on initialization, assignment. output cout can be done without allocation. 
+x.sqrt will create a theoretical Valarray, it is created only if assignment is done. Not supposed to allocate storage until there is an assignment 
+
+auto z = x + y => is that an initialization? In this particular case, z would probably be a proxy, but it can be undefined. But if it is printed, it will be evaluated, but no storage. will be allocated. If I do Valarray<int> z = (x + y).sqrt(); 
+
+Exam problem: Static polymorphism or dynamic polymorphism?
+
+MKS metaprogramming
+-------------------
+variadic template, 1 or more exponents. If someone has an exponent sequence with only 1 exponent, then i need to create a result with h1 + h2. 
+If you have exponent sequence 1, 0 and 1, 1 it wont match the specialization <h1, h2> but it will match the generic template above where h1 = 1, tail1 = 0 and h2 = 1 and tail2 = 1. 
+
+standard conventions - is the metafunction is creating a type, then name it type. If it is calculating a value, name it value. 
+TypeSequenceFind - good thing to put on next thursday's exam.
+
+SFINAE: Principle that applies to function overload resolution. Has nothing to do with template classes, can be combined with it. Template specialization is a different problem. Compiler checks args and checks the parameter types and tries to match.
+
+SFINAE= Substitution Failure Is Not An Error.
+
+Overloads:
+----------
+template <typename T>
+T::value_type doIt(T x) {
+
+}
+
+template <typename T>
+T doIt(T* p) {
+
+}
+
+Invocation:
+-----------
+Vector v;
+doIt(v.begin());
+
+enable_if is a perfectly good method to solve Porject 2. I still want you to do it the other way. 

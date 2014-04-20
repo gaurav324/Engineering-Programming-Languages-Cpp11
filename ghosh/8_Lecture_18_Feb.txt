@@ -1,0 +1,150 @@
+02/18 EPL
+---------
+
+Linkedlist makes a beautiful argument why we have iterators.
+Sequence of some internal type which should probably be private. Yet to scan a linked list, the clients should need a pointer to one node and then next etc.. Iterators provide an opaque type without giving them this private type. 
+Will write a LinkedList which sorta-kinda-almost works and an iterator that sorta-kinda-almost works!
+
+Iterator is a glorified wrapper around a pointer.
+
+Post increment is very difficult to increment, and therefore if you come from C, need to retrain to do pre-increment. 
+
+struct iterator {
+	Node* ptr;
+	// Using keyword is a replacement for typedef and not to be confused with auto
+	// It is a better way than typedef in Chase's opinion, better syntax
+	using value_type = T;
+	T& operator*(void) {
+		return ptr->val;
+	}
+	bool operator==(const iterator& rhs) const {
+		return ptr == rhs.ptr;
+	}
+	bool operator!=(const iterator& rhs) const {
+		return !(*this == rhs);
+	}
+	iterator& operator++(void) {
+		ptr = ptr->next;
+		return *this;
+	}
+	iterator operator++(int) {
+		iterator t{*this};
+		this->operator++();
+		return t;
+	}
+}
+
+Iterator begin(coid) {
+	return iterator{head};
+}
+
+// One after the last can be assumed to be the null pointer (linked list -> next = nullptr)
+Iterator end(void) {
+	return iterator{nullptr};
+}
+
+Proxy for fixing partition is to play with the distance function. The distance between b and e < 2 is the base case for the sort. Initially the distance function is the difference of e - b. But that is cheating as the p - q operator is defined only on random access iterators. However, the linked list iterator is not a random access iterator. Therefore, the distance function needs to be changed. 
+
+template <typename Ptr>
+uint64_t distance(Ptr b, Ptr e) {
+	uint64_t result = 0;
+	while (b != e) {
+		++result;
+		++b;
+	}
+	return result;
+}
+
+If you cannot write a operator- in O(1) you shouldn't write it at all (C++11).
+FIxing the distance function: It increments the pointer 'b' till it becomes equal to 'e', it counts the number of elements. This does not increase the time complexity much (cost of doing this silly loop is probably not too long, as compared to the sort). For illustration the distance would be fixed although it would not give much of a performance.
+
+I want to interrogate my pointer and select whether I want to use this or the other algorithm. 
+
+template <typename Ptr>
+uint64_t distance (Ptr b, Ptr e) {
+	if (iterator_traits<Ptr>::is_random_access()) {
+		return distance_random(b, e);
+	}
+	else {
+		return distance_basic(b, e);
+	}
+}
+
+template <typename It> 
+struct iterator_traits {
+	using value_type = typename It::value_type;
+	static bool is_random_access(void) { return It::is_random_access(); }
+};
+
+Below is a specialization, then C++ will be forced to use the specialized recipe instead of the generic recipe above. 
+The above iterator_traits is a generic recipe and is a pass through class for the iterators.
+The is_random_access() function that is not defined in the STD::vector. This strategy is the wrong strategy as it will not work with vector. However, we can create any strategy we want so get rid of the vector. 
+
+template <typename T>
+struct iterator_traits<T*> {
+	using value_type = T;
+	static vool is_random_access(void) { return true; }
+};
+
+However, since distance() calls distance_random() and distance_random() uses operator-, you can't compile this code for Linked List iterator. Therefore we will use the function overloading method to accomplish this. Removing is_random_access and introducing iterator_category
+
+template <typename It> 
+struct iterator_traits {
+	using value_type = typename It::value_type;
+	using iterator_category = typename It::iterator_category;
+};
+
+
+template <typename T>
+struct iterator_traits<T*> {
+	using value_type = T;
+	using iterator_category = std::random_access_iterator_tag;
+};
+
+The public distance function now takes 2 parameters, and it infers the type of the iterator and makes the call to the appropriate overloaded function.
+template <typename Ptr>
+uint64_t distance (Ptr b, Ptr e) {
+	typename iterator_traits<Ptr>::iterator_category third; 
+	return distance(b, e, third);
+}
+
+Template specialization is not supported with template functions, but only supported for template classes.
+template <typename T>
+uint64_t distance (Ptr b, Ptr e, std::random_access_iterator_tag arg) {
+    ...
+}
+
+template <typename T>
+uint64_t distance (Ptr b, Ptr e, std::forward_iterator_tag arg) {
+    ...
+}
+
+There is a convenience class to make it easier for you to write iterators, and you can inherit from it so you can get the default values.
+struct iterator : std::iterator<T, std::random_access_iterator_tag>
+
+1. How function objects work, they are classes with operator calls which can be inlined. 
+2. if you get into a situation where you need to ask a compile time question (do x or do Y) we ask that question with function overload. 
+
+Challenge for assignment: If you have an iterator, and the client gets it (lets say middle). This points to the correct point as long as you dont move the vector. If they do push_back they move the data to a different array, and it invalidates the pointer. 
+
+vector<int> x = ...
+vector<int>::iterator p = x.begin() + k;
+
+Java -> ConcurrentModificationException  (terrible name for single threaded exception).
+Simplest way to do this, is have a version number for the vector, the iterator inherits the version number when it is created. This requires the need for storing a reference to the vector. If vector is out of scope and someone is using the iterator, it is undefined behavior. Think about iterators becoming invalid. In case of linked lists, iterators become invalid in peculiar ways. 
+
+If you maintain a list of iterators, reassignment of iterators needs to be handled (removing iterator from vector's list)
+
+std::initializer_list
+---------------------
+vector<int> x = {2, 3, 4, 5, 6, 7};
+compiler converts the rhs to a variable of type std::initializer_list<int> and passes it to a constructor of vector that takes std::initializer_list<int>.
+Don't think it matters it std::initializer_int comes as a value or const reference, as it is probably not a heavy object. 
+
+Vector::Vector<int>(std::initializer_list<int> list) {
+    for (v : list) {
+		
+	}
+}
+
+If we are writing functions, write two different versions..i would do overloading rather than specialization. 

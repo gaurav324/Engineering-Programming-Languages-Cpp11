@@ -115,7 +115,7 @@ public:
 		}
 	}
 
-	/* we need some methods, or we can't create teporaries. String concatenation is the obvious operation */
+	/* we need some methods, or we can't create temporaries. String concatenation is the obvious operation */
 	void concat(const String& rhs) {
 		cout << "concat " << *this << " and " << rhs << endl;
 		if (rhs.len == 0) { return; }

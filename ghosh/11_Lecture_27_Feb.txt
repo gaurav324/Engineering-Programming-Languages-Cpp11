@@ -5,7 +5,7 @@ VS 2013 does not support constexpr. const = does change, static = single time as
 1.5 is implicitly double. Floating point is so useless, that C/C++ does not believe in it's capacity and is therefore double precision and not single precision (float).
 
 template <typename T>
-struct SRankl
+struct SRank;
 
 template <> struct SRank<int> { static const uint32_t value = 1; }
 ...

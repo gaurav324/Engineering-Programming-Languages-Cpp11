@@ -53,13 +53,13 @@ Compiler can easily generate machine code to calculate the offset of the functio
 
 p = doIt; and p = &doIt; are the same. Just like p = x and p = &x are the same for static arrays.
 
-using ptr_fun = voi d(*)(void);
+using ptr_fun = void(*)(void);
 ptr_fun p = doIt;
 
 void (*p)(void) = &doIt;
 
 p = &Base::doIt;
-b.(*p)();
+(b.*p)();
 
 In C++ address of a global function and address of a member function are irreconcilably different things, so they can never be confused with each other. Accessing the address of a private member function is equivalent to accessing the function - wherever you have access you will be able to access and vice versa. 
 

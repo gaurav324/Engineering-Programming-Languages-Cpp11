@@ -133,7 +133,7 @@ vector<int>::iterator p = x.begin() + k;
 Java -> ConcurrentModificationException  (terrible name for single threaded exception).
 Simplest way to do this, is have a version number for the vector, the iterator inherits the version number when it is created. This requires the need for storing a reference to the vector. If vector is out of scope and someone is using the iterator, it is undefined behavior. Think about iterators becoming invalid. In case of linked lists, iterators become invalid in peculiar ways. 
 
-If you maintain a list of iterators, reassignment of iterators needs to be handled (removing iterator from vector's list)
+If you use approach of maintaining a list of iterators in vector, reassignment of iterators needs to be handled (removing iterator from vector's list)
 
 std::initializer_list
 ---------------------

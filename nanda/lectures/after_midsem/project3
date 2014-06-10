@@ -1,0 +1,72 @@
+So, we are going to discuss the project-3.
+
+protected:
+    set_course()
+    set_speed()
+    perceive()
+    reproduce()
+- protected functions would never be called by myself.
+
+- objects are dead once their energy is zero.
+- objects die once they reach the end of the world.
+
+private functions:
+    - border_cross [If we move from one region to another]
+    - region_resize
+
+Notes:
+    - if distance < 1.0, collision.
+    - Before you simulate collision, make sure y is updated.
+    - If x simply changes its course, then we don't update state x.
+    - It is imp that, you sync quad tree and your understanding of your position of x to be same.
+    - every object inserted in the quad tree is passed with a callback function. Whenever, 
+      y shits its position, quad tree invokes the callback.
+    - Check the update time has not moved much from simulation time. Inside the update_position function.
+    - Sir wants us to detect the nearest object. 
+    - Add some extra so that you are sure that you have crossed the border.
+    - 
+
+How to create events:
+
+new Event(delta_t, [](void) { this->border_cross(); });
+    or [me]...me->border_cross()
+
+- All Lifeforms are on Heap. SmartPointers are needed to destroy the objects.
+- Once the object dies, you remove it from quad tree, but there might be events for the lifeform. 
+  That is events would have smartpointers to them.
+
+========================================
+Lecture-2 for the same - April 24, 2015.
+========================================
+
+Check Collisions:
+
+    - When an object crosses a border.
+    - with the closest object. If only closest is within 1.
+    - using current state.
+    X.encounter(Y)
+    Y.encounter(X)
+
+if X returns EAT:
+    drand48() < eat_success_chance(X, Y)
+
+Always use SmartPointer to the object, whenever creating an event.
+
+We always have lines between the lifeforms. They might try to ignore 
+each other, but if they keep moving in, they keep on encountering and 
+eventually die.
+
+border_cross_event -> cancel();
+border_cross_event = 0
+========================
+
+procdeure is a subroutine, only has arguments.
+functon has arguments and return type.
+
+procedure<Arg>
+
+f ()
+f = &::doit; // Pointer to a function.
+f = &T::memfun // Pointer to memfunc and object reference.
+
+

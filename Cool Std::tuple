@@ -1,0 +1,81 @@
+#ifndef ATTRIBUTION_CONVERGENCE_DATA_MANAGEMENT_BACKEND_SURROGATE_KEY_GENERATOR_H_
+#define ATTRIBUTION_CONVERGENCE_DATA_MANAGEMENT_BACKEND_SURROGATE_KEY_GENERATOR_H_
+
+#include <stddef.h>
+#include <string>
+#include <tuple>
+#include <type_traits>
+#include <vector>
+
+#include "base/integral_types.h"
+#include "storage/googlesql/public/functions/convert_string.h"
+#include "strings/join.h"
+#include "strings/stringpiece.h"
+#include "util/hash/fingerprint2011.h"
+
+namespace attribution {
+namespace convergence {
+namespace data_management {
+namespace backend {
+
+static constexpr char kSurrogateKeyDelimiter[] = "_";
+
+namespace internal {
+
+template <typename T>
+void convertToGoogleSqlString(T arg, string* result, std::true_type) {
+  ::googlesql::functions::NumericToString(arg, result, nullptr);
+}
+
+template <typename T>
+void convertToGoogleSqlString(T arg, string* result, std::false_type) {
+  result->assign(StringPiece(arg).as_string());
+}
+
+template <typename T>
+void convertToGoogleSqlString(T arg, string* result) {
+  convertToGoogleSqlString(arg, result, std::is_arithmetic<T>());
+}
+
+template <typename Tup, size_t I, size_t N>
+struct PopulateFingerprints {
+  void operator()(std::vector<uint64>* fingerprints, const Tup& tuple) {
+    string result;
+    convertToGoogleSqlString(std::get<I>(tuple), &result);
+    fingerprints->push_back(Fingerprint2011(result));
+    PopulateFingerprints<Tup, I + 1, N>()(fingerprints, tuple);
+  }
+};
+
+template <typename Tup, size_t N>
+struct PopulateFingerprints<Tup, N, N> {
+  void operator()(std::vector<uint64>* fingerprints, const Tup& tuple) {}
+};
+
+}  // namespace internal
+
+// Generates surrogate key for given list of arguments.
+// Algorithm: FingerPrint2011(join(FingerPrint2011(args...), "_"))
+//
+// Valid Input: Arithmetic types and strings(char*, string, StringPiece).
+// Output: Int64, surrogate key.
+//
+// Example:
+// uint64 surrogate_key = GenerateSurrogateKey("Hello", 123, 343.12);
+template <typename... T>
+uint64 GenerateSurrogateKey(const T&... args) {
+  const auto args_tuple = std::make_tuple(args...);
+
+  const size_t kTupSize = std::tuple_size<decltype(args_tuple)>::value;
+  std::vector<uint64> fingerprints;
+  internal::PopulateFingerprints<decltype(args_tuple), 0, kTupSize>()(
+      &fingerprints, args_tuple);
+  return Fingerprint2011(::strings::Join(
+      fingerprints.begin(), fingerprints.end(), kSurrogateKeyDelimiter));
+}
+
+}  // namespace backend
+}  // namespace data_management
+}  // namespace convergence
+}  // namespace attribution
+#endif  // ATTRIBUTION_CONVERGENCE_DATA_MANAGEMENT_BACKEND_SURROGATE_KEY_GENERATOR_H_

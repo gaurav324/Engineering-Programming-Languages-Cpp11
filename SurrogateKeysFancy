@@ -1,0 +1,87 @@
+#ifndef ATTRIBUTION_CONVERGENCE_DATA_MANAGEMENT_BACKEND_SURROGATE_KEY_GENERATOR_H_
+#define ATTRIBUTION_CONVERGENCE_DATA_MANAGEMENT_BACKEND_SURROGATE_KEY_GENERATOR_H_
+
+#include <initializer_list>
+#include <iterator>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include "base/integral_types.h"
+#include "base/template_util.h"
+#include "storage/googlesql/public/functions/convert_string.h"
+#include "strings/join.h"
+#include "strings/stringpiece.h"
+#include "util/hash/fingerprint2011.h"
+
+namespace attribution {
+namespace convergence {
+namespace data_management {
+namespace backend {
+
+static constexpr char kSurrogateKeyDelimiter[] = "_";
+
+namespace internal {
+// has_const_iterator copied from:
+// https://cs.corp.google.com/piper///depot/google3/ads/gpa/serving/mixer/unified/util/debug-string-helper.h?rcl=99247400&l=51
+//
+// SFINAE test for const_iterator member type, i.e. collection types. The value
+// would be non-zero if type T has typedef-ed const_iterator.
+template <typename T>
+struct has_const_iterator {
+  template <typename C>
+  static base::small_ tester(typename C::const_iterator*);
+  template <typename C>
+  static base::big_ tester(...);
+  static const bool value = sizeof(tester<T>(nullptr)) == sizeof(base::small_);
+};
+
+}  // namespace internal
+
+// Convert arithmetic types to GoogleSql string.
+template <typename T>
+typename std::enable_if<std::is_integral<T>::value, string>::type
+ConvertToStringForSurrogateKey(T arg) {
+  string result;
+  ::googlesql::functions::NumericToString(arg, &result, nullptr);
+  return result;
+}
+
+// GoogleSql string overload for string family.
+inline string ConvertToStringForSurrogateKey(StringPiece arg) {
+  return arg.as_string();
+}
+
+// Generates surrogate key for given list of arguments.
+// Algorithm: FingerPrint2011(join(FingerPrint2011(args...), "_"))
+//
+// Example:
+// uint64 surrogate_key = GenerateSurrogateKey("Hello", 123, 343.12);
+template <typename... T>
+uint64 GenerateSurrogateKey(const T&... args) {
+  return Fingerprint2011(::strings::Join(
+      {Fingerprint2011(ConvertToStringForSurrogateKey(args))...},
+      kSurrogateKeyDelimiter));
+}
+
+// Generates Surrogate key overload for input type of Container<T>. A type is
+// considered container if it has const_iterator.
+template <typename Container>
+typename std::enable_if<internal::has_const_iterator<Container>::value,
+                        uint64>::type
+GenerateSurrogateKey(const Container& vec) {
+  using std::begin;
+  using std::end;
+  std::vector<uint64> fingerprints;
+  for (auto it = begin(vec); it != end(vec); ++it) {
+    fingerprints.push_back(
+        Fingerprint2011(ConvertToStringForSurrogateKey(*it)));
+  }
+  return Fingerprint2011(::strings::Join(fingerprints, kSurrogateKeyDelimiter));
+}
+
+}  // namespace backend
+}  // namespace data_management
+}  // namespace convergence
+}  // namespace attribution
+#endif  // ATTRIBUTION_CONVERGENCE_DATA_MANAGEMENT_BACKEND_SURROGATE_KEY_GENERATOR_H_
